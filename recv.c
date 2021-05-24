@@ -35,17 +35,16 @@ int serv_conn(struct addrinfo *servinfo)
     return sockfd;
 }
 
-
-void save_to_file(char *s)
+/*
+void save_to_file(char *s, char *file_name)
 {
-    printf("%s\n", s);
+    printf("%s", s);
     FILE *fp;
-    fp = fopen("new_file", "w");
+    fp = fopen(file_name, "a");
     fputs(s, fp);
     fclose(fp);
 }
-
-
+*/
 
 
 
@@ -59,7 +58,7 @@ int main(int argc, char **argv)
 	char file_buf[MAXDATA];
 	char port[5] = "3490";
 
-	assert(argc == 2);
+	//assert(argc == 2);
 
 	while ((opt = getopt(argc, argv, "p:")) != -1) {
 		switch(opt) {
@@ -81,13 +80,21 @@ int main(int argc, char **argv)
 	}
 
     sockfd = serv_conn(servinfo);
-    
-    memset(file_buf, 0, MAXDATA);
-    int n = read(sockfd, file_buf, MAXDATA);
-    if ( n > 0) {
-        save_to_file(file_buf);
-    }
-    
+
+	FILE *fp = fopen("testfile.txt", "a+");
+	assert(fp);
+
+	int MAX_BUF = 50;
+	memset(file_buf, 0, MAX_BUF);
+    int n = read(sockfd, file_buf, MAX_BUF);
+
+	for (; n > 0; n = read(sockfd, file_buf, MAX_BUF)) {
+		file_buf[n] = '\0';
+		fputs(file_buf, fp);
+		//fprintf(fp, "%s", file_buf);
+		memset(file_buf, 0, MAX_BUF);
+	}
+    fclose(fp);
 
     close(sockfd);
     return 0;
