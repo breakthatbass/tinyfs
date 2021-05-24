@@ -96,10 +96,6 @@ int client_conn(int sockfd, char *file, char *hostname)
     int clientfd;
     struct sockaddr_storage client_addr;
 	socklen_t len;
-    
-
-    printf("%s\n", file);
-
 
      /* wait until client connects */
     int status;
@@ -187,6 +183,7 @@ int main(int argc, char **argv)
 
     int n = client_conn(sockfd, file, hostname);
 
+    free(file);
     close(sockfd);
     return 0;
 }
