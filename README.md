@@ -4,6 +4,13 @@ Share files between seperate systems in a LAN through the terminal.
 
 `tinyfs` is only about 300 lines of code. The sender can send a file of any size and, on success, the reciever will receive that file with the same file name in their current directory.
 
+## Installation
+```
+git clone https://github.com/breakthatbass/tinyfs.git
+cd tinyfs
+make install
+```
+
 ## Usage:
 to send:
 ```
