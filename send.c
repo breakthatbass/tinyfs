@@ -3,9 +3,12 @@
 #include <assert.h>
 #include <getopt.h>
 
-/**
-* run_server
+/*
+* run_server:
 *
+*   attempt to connect to a socket, bind it, and listen
+*  
+*   returns socket file descriptor on success. a negative number on failure
 */
 int run_server(int port)
 {
@@ -23,7 +26,6 @@ int run_server(int port)
 		return -1;
 	}
 
-	// bind the socket to the PORT
 	if (bind(sockfd, (SA*)&servaddr, sizeof servaddr) < 0) {
 		perror("bind");
 		return -2;
@@ -39,10 +41,8 @@ int run_server(int port)
 /**
 * get_file:
 *
-* DESCRIPTION
 *   attempt to read a file into a string
 *
-* RETURN VALUE
 *   on success, a pointer to the string containing the file contents is returned
 *   otherwise, NULL is returned
 */
@@ -65,11 +65,8 @@ char *get_file(char *file)
     buf = calloc(length+2, sizeof(char));
     if (buf == NULL) return NULL;
 
-    // read the entire file into buffer
     fread(buf, 1, length, fp);
     buf[length] = '\0';
-
-    //printf("%s\n", buf);
    
     fclose(fp);
 
@@ -77,6 +74,13 @@ char *get_file(char *file)
 }
 
 
+/*
+* get_client_ip
+*
+*   get the ip address of a connected client
+*
+*   returns the address in string form, or NULL if it fails to retrieve it
+*/
 char *get_client_ip(struct sockaddr_storage client_addr)
 {
     struct sockaddr_in *client_ip;
@@ -86,64 +90,60 @@ char *get_client_ip(struct sockaddr_storage client_addr)
     client_ip = (struct sockaddr_in*)&client_addr;
     ip = client_ip->sin_addr;
 
-    inet_ntop(AF_INET, &ip, s, INET_ADDRSTRLEN);
+    if (inet_ntop(AF_INET, &ip, s, INET_ADDRSTRLEN) == NULL)
+        return NULL;
     return s;
 }
 
-
+/*
+* client_conn
+*
+*   wait until a client connects. if it, attempt to send the file.
+*
+*   
+*/
 int client_conn(int sockfd, char *file, char *hostname)
 {
     int clientfd;
     struct sockaddr_storage client_addr;
 	socklen_t len;
 
-     /* wait until client connects */
-    int status;
-    int connected = 0; /* not connect to client yet */
+    printf("waiting for receiver to connect...\n");
 
-    while (1) {
+    len = sizeof client_addr;
+    clientfd = accept(sockfd, (SA*)&client_addr, &len);
+    if (clientfd < 0) {
+        perror("accept:");
+        return 1;
 
-        if (!connected) {
+    } else {
+        char *ip = get_client_ip(client_addr);
 
-            len = sizeof client_addr;
-            clientfd = accept(sockfd, (SA*)&client_addr, &len);
-            if (clientfd < 0) {
-                perror("accept:");
-                continue;
+        /* make sure the connected client is not an imposter */
+        if (strcmp(hostname, ip) != 0) {
+            fprintf(stderr, "An imposter has connected with the address of %s!!\n", ip);
+            printf("Disconnecting!\n");
+            exit(EXIT_FAILURE);
+        }
 
-            } else {
-                char *ip = get_client_ip(client_addr);
+        if (fork() == 0) {
 
-                /* make sure the connected client is not an imposter! */
-                if (strcmp(hostname, ip) != 0) {
-                    fprintf(stderr, "An imposter has connected with the address of %s!!\n", ip);
-                    printf("Disconnecting!!\n");
-                    exit(EXIT_FAILURE);
-                }
-                
-                connected = 1;
-
-                if (fork() == 0) {
-
-                    if (send(clientfd, file, strlen(file), 0) < 0) {
-                        perror("send:");
-                    } 
-                    printf("file sent successfully\n");
-                } 
-            }
-        } else {
-            wait(&status);
-            return 0;
+            if (send(clientfd, file, strlen(file), 0) < 0) {
+                fprintf(stderr, "error sending file\n");
+                exit(EXIT_FAILURE);
+            } 
+            printf("file has been sent to %s\n", ip);
+            exit(EXIT_SUCCESS);
         }
     }
-    return 1;
+    return 0;
 }
 
 
+void print_usage(int return_code);
 
 int main(int argc, char **argv)
 {
-    /* getopt stuff */
     int opt;
     char *hostname = NULL;
     char *file = NULL;
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     int sockfd;
 
 
-    while ((opt = getopt(argc, argv, "h:f:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:f:p:u")) != -1) {
         switch (opt) {
         case 'p':
             port = atoi(optarg);
@@ -162,28 +162,39 @@ int main(int argc, char **argv)
         case 'h':
             hostname = optarg;
             break;
+        case 'u':
+            print_usage(EXIT_SUCCESS);
         default:
             fprintf(stderr, "%c not recofgnized\n", opt);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
 
     /* we need a hostname and file */
-    if (file == NULL || hostname == NULL) {
-        //print_usage();
-        exit(EXIT_FAILURE);
-    }
+    if (file == NULL || hostname == NULL)
+        print_usage(EXIT_FAILURE);
 
     sockfd = run_server(port);
     if (sockfd < 0) {
         fprintf(stderr, "problem setting up server\n");
         exit(EXIT_FAILURE);
     }
-    printf("server running...\n");
 
     int n = client_conn(sockfd, file, hostname);
-
+    
     free(file);
     close(sockfd);
+
+    if (n) /* problem with connecting to client */
+        return 1;
     return 0;
+}
+
+
+void print_usage(int return_code)
+{
+    printf("tinyfs - a tiny terminal fire sharing program\n\n");
+    printf("Usage:\nsend [-u] [-h IP_OF_RECV] [-f FILE] [-p PORT]\n");
+    printf("\nPort defailts to 3490. -f and -h are required\n");
+    exit(return_code);
 }
