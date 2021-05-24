@@ -20,7 +20,7 @@
 #include <assert.h>
 
 #define MAXDATA 4096
-#define FILENAME 256
+#define MAX_BUF 50
 #define BUF 25
 #define SA struct sockaddr		// for less messy casting
 
