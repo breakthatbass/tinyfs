@@ -62,12 +62,12 @@ char *get_file(char *file)
     length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    buf = calloc(length, sizeof(char));
+    buf = calloc(length+2, sizeof(char));
     if (buf == NULL) return NULL;
 
     // read the entire file into buffer
-    fread(buf, 1, length-1, fp);
-    buf[length-1] = '\0';
+    fread(buf, 1, length, fp);
+    buf[length] = '\0';
 
     //printf("%s\n", buf);
    
@@ -76,11 +76,29 @@ char *get_file(char *file)
     return buf;
 }
 
-int client_conn(int sockfd, char *file)
+
+char *get_client_ip(struct sockaddr_storage client_addr)
+{
+    struct sockaddr_in *client_ip;
+    struct in_addr ip;
+    static char s[INET_ADDRSTRLEN];
+
+    client_ip = (struct sockaddr_in*)&client_addr;
+    ip = client_ip->sin_addr;
+
+    inet_ntop(AF_INET, &ip, s, INET_ADDRSTRLEN);
+    return s;
+}
+
+
+int client_conn(int sockfd, char *file, char *hostname)
 {
     int clientfd;
     struct sockaddr_storage client_addr;
 	socklen_t len;
+    
+
+    printf("%s\n", file);
 
 
      /* wait until client connects */
@@ -98,8 +116,15 @@ int client_conn(int sockfd, char *file)
                 continue;
 
             } else {
+                char *ip = get_client_ip(client_addr);
 
-                printf("connected to a client...\n");
+                /* make sure the connected client is not an imposter! */
+                if (strcmp(hostname, ip) != 0) {
+                    fprintf(stderr, "An imposter has connected with the address of %s!!\n", ip);
+                    printf("Disconnecting!!\n");
+                    exit(EXIT_FAILURE);
+                }
+                
                 connected = 1;
 
                 if (fork() == 0) {
@@ -124,25 +149,33 @@ int main(int argc, char **argv)
 {
     /* getopt stuff */
     int opt;
-    //char *file;
-    unsigned int port;
-    char *file;
+    char *hostname = NULL;
+    char *file = NULL;
+    int port = 3490;
     int sockfd;
 
 
-    while ((opt = getopt(argc, argv, "a:f:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:f:p:")) != -1) {
         switch (opt) {
         case 'p':
             port = atoi(optarg);
-            assert(port > 800);
             break;
         case 'f':
             file = get_file(optarg);
+            break;
+        case 'h':
+            hostname = optarg;
             break;
         default:
             fprintf(stderr, "%c not recofgnized\n", opt);
             exit(1);
         }
+    }
+
+    /* we need a hostname and file */
+    if (file == NULL || hostname == NULL) {
+        //print_usage();
+        exit(EXIT_FAILURE);
     }
 
     sockfd = run_server(port);
@@ -152,7 +185,7 @@ int main(int argc, char **argv)
     }
     printf("server running...\n");
 
-    int n = client_conn(sockfd, file);
+    int n = client_conn(sockfd, file, hostname);
 
     close(sockfd);
     return 0;

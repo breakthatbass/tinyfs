@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <getopt.h>
+#include <assert.h>
 
 #define MAXDATA 4096
 #define FILENAME 256
