@@ -107,7 +107,6 @@ int client_conn(int sockfd, char *file, char *hostname, char *file_name)
     int clientfd;
     struct sockaddr_storage client_addr;
 	socklen_t len;
-    int status;
 
     printf("waiting for receiver to connect...\n");
 
