@@ -46,6 +46,6 @@ It's a pretty basic client/server program. `send` is a server that reads in the 
 `send` can start and it'll wait for a client connection. `revc` connects, creates a file based on the file name sent through, then writes the contents that are sent through to the file.
 
 ## Why?
-I often will start the day working on my laptop somewhere comfortable with coffee. A typical situation is I code in order to test soemthing out but don't want to push any of the code. At some point I move to my desktop and may want to continue working with it or copy and paste parts of it into whatever larger program I'm working on.
+I often will start the day working on my laptop somewhere comfortable with coffee. A typical situation is I code in order to test soemthing out but don't want to push any of that code. At some point I move to my desktop and may want to continue working with it or copy and paste parts of it into whatever larger program I'm working on.
 
-I can add it dropbox or email it to myself but I always want less steps. So `tinyfs` is an attempt to automate that. I'll use this program. I don't know that anyone else will.
+I can add it dropbox or email it to myself but I want less steps. So `tinyfs` is an attempt to automate file sharing through the terminal. I'll use this program. I don't know that anyone else will.
