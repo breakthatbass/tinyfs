@@ -102,11 +102,12 @@ char *get_client_ip(struct sockaddr_storage client_addr)
 *
 *   
 */
-int client_conn(int sockfd, char *file, char *hostname)
+int client_conn(int sockfd, char *file, char *hostname, char *file_name)
 {
     int clientfd;
     struct sockaddr_storage client_addr;
 	socklen_t len;
+    int status;
 
     printf("waiting for receiver to connect...\n");
 
@@ -123,6 +124,12 @@ int client_conn(int sockfd, char *file, char *hostname)
         if (strcmp(hostname, ip) != 0) {
             fprintf(stderr, "An imposter has connected with the address of %s!!\n", ip);
             printf("Disconnecting!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        /* first let's send through the file name */
+        if (send(clientfd, file_name, strlen(file_name), 0) < 0) {
+            fprintf(stderr, "problem sending file name\n");
             exit(EXIT_FAILURE);
         }
 
@@ -147,6 +154,7 @@ int main(int argc, char **argv)
     int opt;
     char *hostname = NULL;
     char *file = NULL;
+    char *file_name;
     int port = 3490;
     int sockfd;
 
@@ -158,6 +166,7 @@ int main(int argc, char **argv)
             break;
         case 'f':
             file = get_file(optarg);
+            file_name = optarg;
             break;
         case 'h':
             hostname = optarg;
@@ -180,7 +189,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    int n = client_conn(sockfd, file, hostname);
+    int n = client_conn(sockfd, file, hostname, file_name);
     
     free(file);
     close(sockfd);
