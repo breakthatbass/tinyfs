@@ -9,6 +9,10 @@ send: send.c
 recv: recv.c
 	$(CC) $(CFLAGS) recv.c -o recv
 
+install: send recv
+	cp send /usr/local/bin/send
+	cp recv /usr/local/bin/recv
+
 clean:
 	rm send recv
 	rm -rf *.dSYM
