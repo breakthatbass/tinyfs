@@ -55,7 +55,10 @@ It's a pretty basic client/server program. `send` is a server that reads in the 
 ## Why?
 I often will start the day working on my laptop somewhere comfortable with coffee. A typical situation is I code in order to test soemthing out but don't want to push any of that code. At some point I move to my desktop and may want to continue working with it or copy and paste parts of it into whatever larger program I'm working on.
 
-I can add it dropbox or email it to myself but I want less steps. So `tinyfs` is an attempt to automate file sharing through the terminal. I'll use this program. I don't know that anyone else will.
+I can add it dropbox or email it to myself or I can just use run a `python` server and send it pretty much in the same way `tinyfs` works. So `tinyfs` is an attempt to automate file sharing through the terminal but also for me to have more practice with network programming. I'll use this program. I don't know that anyone else will.
+
+## Is it secure?
+I doubt it.
 
 ## Contributing
 If you find a bug it would be great if you open an issue. And if you want to fix it or contribute in any way, pull requests are appreciated.
