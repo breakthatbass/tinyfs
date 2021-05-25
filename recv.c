@@ -83,6 +83,13 @@ char *parse_file_name(char *file_name)
 	return buf;
 }
 
+
+/*
+* get_file_name_from_send
+*
+*	get the file name of the file that sender wants to send
+*	this is to get a name to save the incoming file as
+*/
 char *get_filename_from_send(int sockfd)
 {
 	static char file_name[BUF];
@@ -94,6 +101,13 @@ char *get_filename_from_send(int sockfd)
 }
 
 
+/*
+* read_in_file
+*
+*	read in file contents from sender 50 bytes at a time
+*	and write those bytes to the file.
+*	continue reading and writing until no more bytes come through 
+*/
 int read_in_file(char *file_name, int sockfd)
 {
 	static char file_buf[MAX_BUF+1];
@@ -108,7 +122,6 @@ int read_in_file(char *file_name, int sockfd)
 		return 1;
 
 	for (; n > 0; n = read(sockfd, file_buf, MAX_BUF)) {
-		//file_buf[n] = '\0';
 		fputs(file_buf, fp);
 		memset(file_buf, 0, MAX_BUF);
 	}
@@ -116,7 +129,9 @@ int read_in_file(char *file_name, int sockfd)
 	return 0;
 }
 
+
 void print_usage(int return_code);
+
 
 int main(int argc, char **argv)
 {
