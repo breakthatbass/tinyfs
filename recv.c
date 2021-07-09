@@ -26,7 +26,10 @@ struct addrinfo *client_init(char *host, char *port)
 
 /*
 *  serv_conn
+*
 *	 attempt to open a socket and connect to server
+*
+*	 on success, returns the socket file descriptor
 */
 int serv_conn(struct addrinfo *servinfo)
 {
@@ -68,7 +71,8 @@ int serv_conn(struct addrinfo *servinfo)
 * get_file_name_from_send
 *
 *	get the file name of the file that sender wants to send
-*	this is to get a name to save the incoming file as
+*	
+*	returns the file name as a string on success, on failure, returns NULL
 */
 char *get_filename_from_send(int sockfd)
 {
@@ -86,10 +90,13 @@ char *get_filename_from_send(int sockfd)
 *
 *	read in file contents from sender 50 bytes at a time
 *	and write those bytes to the file.
-*	continue reading and writing until no more bytes come through 
+*	continue reading and writing until no more bytes come through
+*
+*	on success, return 0. on failure, return 1
 */
+
 #define CHUNK 1096
-#define TOTAL 4000000
+
 int read_in_file(char *file_name, int sockfd)
 {
 	char buf[CHUNK];
