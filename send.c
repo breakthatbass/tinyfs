@@ -130,6 +130,8 @@ int client_conn(int sockfd, char *hostname)
     //  this block below will prevent sharing of files
     //  on the same computer between terminals
     //  however, it's fine if files are share on different computers
+    //  
+    //  without this however, the hostname is not used in send.c
     /*
 	if (strcmp(client_ip, hostname) != 0) {
 		printf("an imposter is trying to connect!\ndisconnecting...");
