@@ -103,9 +103,10 @@ char *get_client_ip(struct sockaddr_storage client_addr)
 /*
 * client_conn
 *
-*   wait until a client connects. if it, attempt to send the file.
+*   wait and attepmt to connect to a client
 *
-*   
+*	returns client socket file descriptor on success.
+*	on failire, returns -1   
 */
 int client_conn(int sockfd, char *hostname)
 {
@@ -132,6 +133,8 @@ int client_conn(int sockfd, char *hostname)
 * sned_file
 *
 *   send a file and it's name through a socket
+*
+*   returns 0 on success, 1 if file name fails to send, 2 if file failes to send
 */
 int send_file(int socket, char *file, int file_size, char *file_name)
 {
