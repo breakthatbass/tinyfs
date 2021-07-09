@@ -104,12 +104,12 @@ int read_in_file(char *file_name, int sockfd)
 		if ((n = recv(sockfd, buf, CHUNK, 0)) < 1) break;
 		else {
 			total_size += n;
-			printf("size: %d\n", total_size);
 			fwrite(buf, 1, CHUNK, fp);
 		}
 	}
 
-	printf("bytes recieved: %d\n", total_size);
+	printf("file: %s\n", file_name);
+	printf("size (bytes): %d\n", total_size);
     fclose(fp);
 	return 0;
 }
