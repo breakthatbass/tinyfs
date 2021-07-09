@@ -1,11 +1,13 @@
 #include "tinyfs.h"
+#include <ctype.h>
+
 
 /*
 * client_init:
 *
 *	set up client with data from host and port.
 *
-*	returns a linked list
+*	returns a linked list on success, NULL on failure
 */
 struct addrinfo *client_init(char *host, char *port)
 {
@@ -18,7 +20,7 @@ struct addrinfo *client_init(char *host, char *port)
 
 	if ((rv = getaddrinfo(host, port, &hints, &f)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	return f;
 }
@@ -30,6 +32,7 @@ struct addrinfo *client_init(char *host, char *port)
 *	 attempt to open a socket and connect to server
 *
 *	 on success, returns the socket file descriptor
+*	 on failure, returns -1
 */
 int serv_conn(struct addrinfo *servinfo)
 {
@@ -52,10 +55,8 @@ int serv_conn(struct addrinfo *servinfo)
 		/* if we make it here, we've got a connection */
 		break;
 	}
-    if (p == NULL) {
-		fprintf(stderr, "client: failed to connect\n");
-		exit(EXIT_FAILURE);
-	}
+    if (p == NULL)
+		return -1;
 
 	inet_ntop(p->ai_family, (SA*)&p->ai_addr, s, sizeof s);
 	printf("client: connecting to %s\n", s);
@@ -115,8 +116,8 @@ int read_in_file(char *file_name, int sockfd)
 		}
 	}
 
-	printf("file: %s\n", file_name);
-	printf("size (bytes): %d\n", total_size);
+	printf("file name: %s\nfile_size: %d\n", file_name, total_size);
+
     fclose(fp);
 	return 0;
 }
@@ -128,7 +129,7 @@ int main(int argc, char **argv)
 {
     int sockfd, opt;
 	struct addrinfo *servinfo;
-	char file_name[BUF];
+	char file_name[BUF] = {0};
 	char port[5] = "3490";
 	char *host;
 
@@ -159,25 +160,40 @@ int main(int argc, char **argv)
 	}
 
     servinfo = client_init(host, port);
+	if (servinfo == NULL) {
+		fprintf(stderr, "error initiating client\n");
+		exit(EXIT_FAILURE);
+	}
 
     sockfd = serv_conn(servinfo);
+	if (sockfd < 0) {
+		fprintf(stderr, "client: failed to connect\n");
+		exit(EXIT_FAILURE);
+	}
 
 	// first lets get file name
 	strcpy(file_name, get_filename_from_send(sockfd));
+	if (!isalpha(file_name[0])) {
+		fprintf(stderr, "error recieving file name from sender\n");
+		exit(EXIT_FAILURE);
+	}
 	
 	int n = read_in_file(file_name, sockfd);
 	if (n == 1) {
 		fprintf(stderr, "problem reading file\n");
 		exit(EXIT_FAILURE);
 	}
-	if (n == 2) {
+	else if (n == 2) {
 		fprintf(stderr, "problem reading from socket\n");
 		exit(EXIT_FAILURE);
 	}
 
+	printf("recieved successfully\n");
+
     close(sockfd);
     return 0;
 }
+
 
 void print_usage(int return_code)
 {

@@ -127,11 +127,15 @@ int client_conn(int sockfd, char *hostname)
 	strcpy(client_ip, get_client_ip(client_addr));
 	printf("connected to client: %s\n", client_ip);
 
+    //  this block below will prevent sharing of files
+    //  on the same computer between terminals
+    //  however, it's fine if files are share on different computers
+    /*
 	if (strcmp(client_ip, hostname) != 0) {
 		printf("an imposter is trying to connect!\ndisconnecting...");
 		return -2;
 	}
-
+    */
     return clientfd;
 }
 
