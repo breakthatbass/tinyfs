@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fsanitize=address -Wall -g
+CFLAGS=-Wall -g -fsanitize=address
 
 all: send recv
 

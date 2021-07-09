@@ -19,8 +19,8 @@
 #include <getopt.h>
 #include <assert.h>
 
-#define MAXDATA 4096
-#define MAX_BUF 50
+#define MAXDATA 300000
+#define MAX_BUF 500
 #define BUF 25
 #define SA struct sockaddr		// for less messy casting
 

@@ -1,6 +1,5 @@
 #include "tinyfs.h"
 
-
 /*
 * client_init:
 *
@@ -64,25 +63,6 @@ int serv_conn(struct addrinfo *servinfo)
 }
 
 
-/*
-*	parse_file_name:
-*
-*	parse through a file path to get the file name
-*/
-char *parse_file_name(char *file_name)
-{
-	char *buf;
-	if ((buf = strstr(file_name, "/")) == NULL)
-		return file_name;
-	
-	do {
-        buf = strstr(buf, "/");
-        buf++;
-    } while (strstr(buf, "/"));
-
-	return buf;
-}
-
 
 /*
 * get_file_name_from_send
@@ -92,8 +72,8 @@ char *parse_file_name(char *file_name)
 */
 char *get_filename_from_send(int sockfd)
 {
-	static char file_name[BUF];
-	memset(file_name, 0, BUF);
+	static char file_name[BUF] = {0};
+	
 	int b = read(sockfd, file_name, BUF);
 	if (b < 1)
 		return NULL;
@@ -108,30 +88,34 @@ char *get_filename_from_send(int sockfd)
 *	and write those bytes to the file.
 *	continue reading and writing until no more bytes come through 
 */
+#define CHUNK 1096
+#define TOTAL 4000000
 int read_in_file(char *file_name, int sockfd)
 {
-	static char file_buf[MAX_BUF+1];
+	char buf[CHUNK];
+	int total_size = 0;
+	int n;
 
-	FILE *fp = fopen(parse_file_name(file_name), "a+");
+	FILE *fp = fopen(file_name, "wb");
 	if (fp == NULL) 
 		return 1;
-
-	memset(file_buf, 0, MAX_BUF);
-    int n = read(sockfd, file_buf, MAX_BUF);
-	if (n < 0)
-		return 1;
-
-	for (; n > 0; n = read(sockfd, file_buf, MAX_BUF)) {
-		fputs(file_buf, fp);
-		memset(file_buf, 0, MAX_BUF);
+	while (1) {
+		memset(buf, 0, CHUNK);
+		if ((n = recv(sockfd, buf, CHUNK, 0)) < 1) break;
+		else {
+			total_size += n;
+			printf("size: %d\n", total_size);
+			fwrite(buf, 1, CHUNK, fp);
+		}
 	}
+
+	printf("bytes recieved: %d\n", total_size);
     fclose(fp);
 	return 0;
 }
 
 
 void print_usage(int return_code);
-
 
 int main(int argc, char **argv)
 {
@@ -173,10 +157,14 @@ int main(int argc, char **argv)
 
 	// first lets get file name
 	strcpy(file_name, get_filename_from_send(sockfd));
-
+	
 	int n = read_in_file(file_name, sockfd);
 	if (n == 1) {
-		fprintf(stderr, "problem collecting file data\n");
+		fprintf(stderr, "problem reading file\n");
+		exit(EXIT_FAILURE);
+	}
+	if (n == 2) {
+		fprintf(stderr, "problem reading from socket\n");
 		exit(EXIT_FAILURE);
 	}
 

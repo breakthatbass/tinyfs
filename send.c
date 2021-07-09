@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <getopt.h>
+#include <libgen.h>  // basename()
 
 /*
 * run_server:
@@ -41,18 +42,18 @@ int run_server(int port)
 /**
 * get_file:
 *
-*   attempt to read a file into a string
+*   attempt to read a file into a string and define its size
 *
 *   on success, a pointer to the string containing the file contents is returned
 *   otherwise, NULL is returned
 */
-char *get_file(char *file)
+char *get_file(char *file, int *size)
 {
     FILE *fp;
-    long length;
+    int length;
     char *buf = {0};
 
-    fp = fopen(file, "r");
+    fp = fopen(file, "rb");
     if (fp == NULL) {
         perror("fopen:");
         exit(1);
@@ -62,7 +63,9 @@ char *get_file(char *file)
     length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    buf = calloc(length+2, sizeof(char));
+    *size = length;
+
+    buf = malloc(length+1 * sizeof(char));
     if (buf == NULL) return NULL;
 
     fread(buf, 1, length, fp);
@@ -95,6 +98,8 @@ char *get_client_ip(struct sockaddr_storage client_addr)
     return s;
 }
 
+
+
 /*
 * client_conn
 *
@@ -102,7 +107,7 @@ char *get_client_ip(struct sockaddr_storage client_addr)
 *
 *   
 */
-int client_conn(int sockfd, char *file, char *hostname, char *file_name)
+int client_conn(int sockfd, char *hostname)
 {
     int clientfd;
     struct sockaddr_storage client_addr;
@@ -114,33 +119,35 @@ int client_conn(int sockfd, char *file, char *hostname, char *file_name)
     clientfd = accept(sockfd, (SA*)&client_addr, &len);
     if (clientfd < 0) {
         perror("accept:");
+        return -1;
+    } 
+    return clientfd;
+}
+
+
+/*
+* sned_file
+*
+*   send a file and it's name through a socket
+*/
+int send_file(int socket, char *file, int file_size, char *file_name)
+{
+    /* first let's send through the file name */
+
+    // get basename of file
+    char *file_base = basename(file_name);
+   
+    if (send(socket, file_base, strlen(file_base), 0) < 0) {
+        fprintf(stderr, "problem sending file name\n");
         return 1;
+    }
 
-    } else {
-        char *ip = get_client_ip(client_addr);
+    //file_data = get_file(file, &file_size);
+    printf("file name: %s\nfile size: %d bytes\n", file_base, file_size);
 
-        /* make sure the connected client is not an imposter */
-        if (strcmp(hostname, ip) != 0) {
-            fprintf(stderr, "An imposter has connected with the address of %s!!\n", ip);
-            printf("Disconnecting!\n");
-            exit(EXIT_FAILURE);
-        }
-
-        /* first let's send through the file name */
-        if (send(clientfd, file_name, strlen(file_name), 0) < 0) {
-            fprintf(stderr, "problem sending file name\n");
-            exit(EXIT_FAILURE);
-        }
-
-        if (fork() == 0) {
-
-            if (send(clientfd, file, strlen(file), 0) < 0) {
-                fprintf(stderr, "error sending file\n");
-                exit(EXIT_FAILURE);
-            } 
-            printf("file has been sent to %s\n", ip);
-            exit(EXIT_SUCCESS);
-        }
+    if (send(socket, file, file_size, 0) < 0) {
+        fprintf(stderr, "problem sending file data\n");
+        return 2;
     }
     return 0;
 }
@@ -153,6 +160,7 @@ int main(int argc, char **argv)
     int opt;
     char *hostname = NULL;
     char *file = NULL;
+    int file_size;
     char *file_name;
     int port = 3490;
     int sockfd;
@@ -164,7 +172,7 @@ int main(int argc, char **argv)
             port = atoi(optarg);
             break;
         case 'f':
-            file = get_file(optarg);
+            file = get_file(optarg, &file_size);
             file_name = optarg;
             break;
         case 'h':
@@ -188,13 +196,17 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    int n = client_conn(sockfd, file, hostname, file_name);
+    int client_sock = client_conn(sockfd, hostname);
+    assert(client_sock > -1);
+
+    int n = send_file(client_sock, file, file_size, file_name);
+    assert(n == 0);
+    printf("sent succesfully\n");
     
     free(file);
     close(sockfd);
+    close(client_sock);
 
-    if (n) /* problem with connecting to client */
-        return 1;
     return 0;
 }
 
