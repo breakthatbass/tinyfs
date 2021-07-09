@@ -111,6 +111,7 @@ char *get_client_ip(struct sockaddr_storage client_addr)
 int client_conn(int sockfd, char *hostname)
 {
     int clientfd;
+	char client_ip[INET_ADDRSTRLEN];
     struct sockaddr_storage client_addr;
 	socklen_t len;
 
@@ -121,7 +122,16 @@ int client_conn(int sockfd, char *hostname)
     if (clientfd < 0) {
         perror("accept:");
         return -1;
-    } 
+    }
+	
+	strcpy(client_ip, get_client_ip(client_addr));
+	printf("connected to client: %s\n", client_ip);
+
+	if (strcmp(client_ip, hostname) != 0) {
+		printf("an imposter is trying to connect!\ndisconnecting...");
+		return -2;
+	}
+
     return clientfd;
 }
 
@@ -138,24 +148,24 @@ int client_conn(int sockfd, char *hostname)
 */
 int send_file(int socket, char *file, int file_size, char *file_name)
 {
-    /* first let's send through the file name */
-
     // get basename of file
     char *file_base = basename(file_name);
-   
+  
+	// first send through the file name	
     if (send(socket, file_base, strlen(file_base), 0) < 0) {
         fprintf(stderr, "problem sending file name\n");
         return 1;
     }
 
-    //file_data = get_file(file, &file_size);
-    printf("file name: %s\nfile size: %d bytes\n", file_base, file_size);
-
+	// then send through the file conetents
     if (send(socket, file, file_size, 0) < 0) {
         fprintf(stderr, "problem sending file data\n");
         return 2;
     }
-    return 0;
+    
+	printf("file name: %s\nfile size: %d bytes\n", file_base, file_size);
+    
+	return 0;
 }
 
 
@@ -169,7 +179,7 @@ int main(int argc, char **argv)
     int file_size;
     char *file_name;
     int port = 3490;
-    int sockfd;
+    int sockfd, client_sock, n;
 
 
     while ((opt = getopt(argc, argv, "h:f:p:u")) != -1) {
@@ -198,16 +208,23 @@ int main(int argc, char **argv)
 
     sockfd = run_server(port);
     if (sockfd < 0) {
-        fprintf(stderr, "problem setting up server\n");
+        fprintf(stderr, "error setting up server: %d\n", sockfd);
         exit(EXIT_FAILURE);
     }
 
-    int client_sock = client_conn(sockfd, hostname);
-    assert(client_sock > -1);
+    client_sock = client_conn(sockfd, hostname);
+	if (client_sock < 0) {
+		fprintf(stderr, "error connecting to client: %d\n", client_sock);
+		exit(EXIT_FAILURE);
+	}
 
-    int n = send_file(client_sock, file, file_size, file_name);
-    assert(n == 0);
-    printf("sent succesfully\n");
+    n = send_file(client_sock, file, file_size, file_name);
+	if (n != 0) {
+		fprintf(stderr, "error sending file: %d\n", n);
+		exit(EXIT_FAILURE);
+	}
+
+    printf("file sent succesfully\nshutting down server\n");
     
     free(file);
     close(sockfd);
